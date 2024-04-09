@@ -63,7 +63,16 @@ static void MX_TIM1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+int error[2];
+double integral;
+const double KP=1,KI=1,KD=1,DELTA_T=0.0001;
 
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  if (htim == &htim12){
+    
+  }
+}
 /* USER CODE END 0 */
 
 /**
@@ -82,7 +91,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  HAL_TIM_Base_Start_IT(&htim12);//0.1ms
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -99,7 +108,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_Base_Start_IT(&htim12);//0.1ms
+  
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -368,7 +377,22 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+float pid_culc(float feedback_val, float target_val)//pid
+{
 
+float p, i, d;
+
+error[0] = error[1];
+error[1] = feedback_val - target_val;
+integral += (error[1] + error[0]) / 2.0 * DELTA_T;
+
+p = KP * error[1];
+i = KI * integral;
+d = KD * (error[1] - error[0])/DELTA_T;
+
+return (p + i + d);
+
+}
 /* USER CODE END 4 */
 
 /**
