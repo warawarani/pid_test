@@ -99,7 +99,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_TIM_Base_Start_IT(&htim12);//0.1ms
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -277,7 +277,7 @@ static void MX_TIM12_Init(void)
 
   /* USER CODE END TIM12_Init 1 */
   htim12.Instance = TIM12;
-  htim12.Init.Prescaler = 3199;
+  htim12.Init.Prescaler = 4199;
   htim12.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim12.Init.Period = 1;
   htim12.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
