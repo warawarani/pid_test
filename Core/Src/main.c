@@ -63,7 +63,7 @@ static void MX_TIM1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-int error[2];
+double error[2];
 double integral;
 const double KP=1,KI=1,KD=1,DELTA_T=0.0001;
 const int MAXVAL=2000;
