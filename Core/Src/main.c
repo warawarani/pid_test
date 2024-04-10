@@ -66,6 +66,7 @@ static void MX_TIM1_Init(void);
 int error[2];
 double integral;
 const double KP=1,KI=1,KD=1,DELTA_T=0.0001;
+const int MAXVAL=2000;
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
@@ -377,6 +378,31 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+int ErrorValueCul(float feedback_val, float target_val)//error cul
+{
+  int halfPoint;
+  float errorVal;
+  if(target_val<=MAXVAL/2){
+    halfPoint=target_val+MAXVAL/2;
+    if(feedback_val<=halfPoint){
+      errorVal=feedback_val-target_val;
+    }
+    else if(feedback_val>halfPoint){
+      errorVal=-target_val-MAXVAL+feedback_val;
+    }
+  }
+  else if(target_val>MAXVAL/2){
+    halfPoint=target_val-MAXVAL/2;
+    if(feedback_val>=halfPoint){
+      errorVal=feedback_val-target_val;
+    }
+    else if(feedback_val<halfPoint){
+      errorVal=-target_val+MAXVAL+feedback_val;
+    }
+  }
+  return(errorVal);
+}
+
 float pid_culc(float feedback_val, float target_val)//pid
 {
 
