@@ -65,13 +65,19 @@ static void MX_TIM1_Init(void);
 /* USER CODE BEGIN 0 */
 double error[2];
 double integral;
-const double KP=1,KI=1,KD=1,DELTA_T=0.0001;
-const int MAXVAL=2000;
+const double KP=1,KI=1,KD=1;//gain
+const double DELTA_T=0.0001;//int period
+const int MAXVAL=2000;//max feedback val
+const double powerPosition =1000;//Locked Anti-Phase
+
+float ErrorValueCul(float feedback_val, float target_val);//error cul
+float PidCul(float errorVal);//pid cul
+float SteeringPowerCul(float feedback_val, float target_val);//Locked Anti-Phase
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   if (htim == &htim12){
-    
+    //SteeringPowerCul(,);
   }
 }
 /* USER CODE END 0 */
@@ -378,7 +384,7 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-int ErrorValueCul(float feedback_val, float target_val)//error cul
+float ErrorValueCul(float feedback_val, float target_val)//error cul
 {
   int halfPoint;
   float errorVal;
@@ -403,13 +409,13 @@ int ErrorValueCul(float feedback_val, float target_val)//error cul
   return(errorVal);
 }
 
-float pid_culc(float feedback_val, float target_val)//pid
+float PidCul(float errorVal)//pid cul
 {
 
 float p, i, d;
 
 error[0] = error[1];
-error[1] = feedback_val - target_val;
+error[1] = errorVal;
 integral += (error[1] + error[0]) / 2.0 * DELTA_T;
 
 p = KP * error[1];
@@ -418,6 +424,13 @@ d = KD * (error[1] - error[0])/DELTA_T;
 
 return (p + i + d);
 
+}
+
+float SteeringPowerCul(float feedback_val, float target_val){
+  double steeringPower;
+  steeringPower=powerPosition+PidCul(ErrorValueCul(feedback_val,target_val));
+
+  return(steeringPower);
 }
 /* USER CODE END 4 */
 
