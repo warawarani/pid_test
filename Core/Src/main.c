@@ -66,7 +66,7 @@ static void MX_TIM1_Init(void);
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   if (htim == &htim12){
-    SteeringPowerCul(&str[0]);//pid culc
+    SteeringPowerCul(&str[0]);
   }
 }
 /* USER CODE END 0 */
