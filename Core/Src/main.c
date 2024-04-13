@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "pid.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -31,7 +31,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define MAX_STEERING 1
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -47,33 +47,6 @@ TIM_HandleTypeDef htim12;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-struct PID_CON_VAR{
-  double error[2];
-  double integral;
-  double KP,KI,KD;//gain
-  double DELTA_T;//int period
-  int MAXVAL;//max feedback val
-  int powerPosition;//Locked Anti-Phase
-  float feedback_val;
-  float target_val;
-  int tag;
-};
-
-struct PID_CON_VAR steerring[MAX_STEERING],*str[MAX_STEERING];
-
-void SetParameter(){
-  int count;
-  for(count=0;count<MAX_STEERING;count++){
-    str[count] = &steerring[count];
-    str[count] -> KP =1;//P gain
-    str[count] -> KI =1;//I gain
-    str[count] -> KD =1;//D gain
-    str[count] -> DELTA_T =0.0001;
-    str[count] -> MAXVAL =2000;
-    str[count] -> powerPosition =1000;
-    str[count] -> tag = count;
-  }
-}
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -84,9 +57,7 @@ static void MX_TIM12_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
-float ErrorValueCul(struct PID_CON_VAR *str);//error cul
-float PidCul(struct PID_CON_VAR *str);//pid cul
-float SteeringPowerCul(struct PID_CON_VAR *str);//Locked Anti-Phase
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -95,7 +66,7 @@ float SteeringPowerCul(struct PID_CON_VAR *str);//Locked Anti-Phase
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   if (htim == &htim12){
-    //SteeringPowerCul(,);
+    SteeringPowerCul(&str[0]);//pid culc
   }
 }
 /* USER CODE END 0 */
@@ -107,7 +78,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+  InitPidParameter();
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -117,6 +88,7 @@ int main(void)
 
   /* USER CODE BEGIN Init */
   HAL_TIM_Base_Start_IT(&htim12);//0.1ms
+  HAL_TIM_Encoder_Start(&htim1,TIM_CHANNEL_ALL);
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -140,6 +112,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -402,54 +375,7 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-float ErrorValueCul(struct PID_CON_VAR *str)//error cul
-{
-  int halfPoint;
-  float errorVal;
-  if(str->target_val<=str->MAXVAL/2){
-    halfPoint=str->target_val + str->MAXVAL/2;
-    if(str->feedback_val<=halfPoint){
-      errorVal=str->feedback_val - str->target_val;
-    }
-    else if(str->feedback_val>halfPoint){
-      errorVal=-str->target_val - str->MAXVAL + str->feedback_val;
-    }
-  }
-  else if(str->target_val>str->MAXVAL/2){
-    halfPoint=str->target_val - str->MAXVAL /2;
-    if(str->feedback_val>=halfPoint){
-      errorVal=str->feedback_val - str->target_val;
-    }
-    else if(str->feedback_val<halfPoint){
-      errorVal= -str->target_val + str->MAXVAL +str->feedback_val;
-    }
-  }
-  str->error[1]=errorVal;
-}
 
-float PidCul(struct PID_CON_VAR *str)//pid cul
-{
-
-float p, i, d;
-
-str->error[0] = str->error[1];
-str->integral += (str->error[1] + str->error[0]) / 2.0 * str->DELTA_T;
-
-p = str->KP * str->error[1];
-i = str->KI * str->integral;
-d = str->KD * (str->error[1] - str->error[0])/str->DELTA_T;
-
-return (p + i + d);
-
-}
-
-float SteeringPowerCul(struct PID_CON_VAR *str){
-  double steeringPower;
-  ErrorValueCul(&str[str->tag]);
-  steeringPower= str->powerPosition + PidCul(&str[str->tag]);
-
-  return(steeringPower);
-}
 /* USER CODE END 4 */
 
 /**
