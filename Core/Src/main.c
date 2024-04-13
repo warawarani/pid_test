@@ -31,7 +31,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define MAX_STEERING 1
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -47,7 +47,33 @@ TIM_HandleTypeDef htim12;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+struct PID_CON_VAR{
+  double error[2];
+  double integral;
+  double KP,KI,KD;//gain
+  double DELTA_T;//int period
+  int MAXVAL;//max feedback val
+  int powerPosition;//Locked Anti-Phase
+  float feedback_val;
+  float target_val;
+  int tag;
+};
 
+struct PID_CON_VAR steerring[MAX_STEERING],*str[MAX_STEERING];
+
+void SetParameter(){
+  int count;
+  for(count=0;count<MAX_STEERING;count++){
+    str[count] = &steerring[count];
+    str[count] -> KP =1;//P gain
+    str[count] -> KI =1;//I gain
+    str[count] -> KD =1;//D gain
+    str[count] -> DELTA_T =0.0001;
+    str[count] -> MAXVAL =2000;
+    str[count] -> powerPosition =1000;
+    str[count] -> tag = count;
+  }
+}
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -58,21 +84,13 @@ static void MX_TIM12_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
-
+float ErrorValueCul(struct PID_CON_VAR *str);//error cul
+float PidCul(struct PID_CON_VAR *str);//pid cul
+float SteeringPowerCul(struct PID_CON_VAR *str);//Locked Anti-Phase
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-double error[2];
-double integral;
-const double KP=1,KI=1,KD=1;//gain
-const double DELTA_T=0.0001;//int period
-const int MAXVAL=2000;//max feedback val
-const double powerPosition =1000;//Locked Anti-Phase
-
-float ErrorValueCul(float feedback_val, float target_val);//error cul
-float PidCul(float errorVal);//pid cul
-float SteeringPowerCul(float feedback_val, float target_val);//Locked Anti-Phase
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
@@ -384,51 +402,51 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-float ErrorValueCul(float feedback_val, float target_val)//error cul
+float ErrorValueCul(struct PID_CON_VAR *str)//error cul
 {
   int halfPoint;
   float errorVal;
-  if(target_val<=MAXVAL/2){
-    halfPoint=target_val+MAXVAL/2;
-    if(feedback_val<=halfPoint){
-      errorVal=feedback_val-target_val;
+  if(str->target_val<=str->MAXVAL/2){
+    halfPoint=str->target_val + str->MAXVAL/2;
+    if(str->feedback_val<=halfPoint){
+      errorVal=str->feedback_val - str->target_val;
     }
-    else if(feedback_val>halfPoint){
-      errorVal=-target_val-MAXVAL+feedback_val;
-    }
-  }
-  else if(target_val>MAXVAL/2){
-    halfPoint=target_val-MAXVAL/2;
-    if(feedback_val>=halfPoint){
-      errorVal=feedback_val-target_val;
-    }
-    else if(feedback_val<halfPoint){
-      errorVal=-target_val+MAXVAL+feedback_val;
+    else if(str->feedback_val>halfPoint){
+      errorVal=-str->target_val - str->MAXVAL + str->feedback_val;
     }
   }
-  return(errorVal);
+  else if(str->target_val>str->MAXVAL/2){
+    halfPoint=str->target_val - str->MAXVAL /2;
+    if(str->feedback_val>=halfPoint){
+      errorVal=str->feedback_val - str->target_val;
+    }
+    else if(str->feedback_val<halfPoint){
+      errorVal= -str->target_val + str->MAXVAL +str->feedback_val;
+    }
+  }
+  str->error[1]=errorVal;
 }
 
-float PidCul(float errorVal)//pid cul
+float PidCul(struct PID_CON_VAR *str)//pid cul
 {
 
 float p, i, d;
 
-error[0] = error[1];
-error[1] = errorVal;
-integral += (error[1] + error[0]) / 2.0 * DELTA_T;
+str->error[0] = str->error[1];
+str->integral += (str->error[1] + str->error[0]) / 2.0 * str->DELTA_T;
 
-p = KP * error[1];
-i = KI * integral;
-d = KD * (error[1] - error[0])/DELTA_T;
+p = str->KP * str->error[1];
+i = str->KI * str->integral;
+d = str->KD * (str->error[1] - str->error[0])/str->DELTA_T;
 
 return (p + i + d);
 
 }
 
-float SteeringPowerCul(float feedback_val, float target_val){
+float SteeringPowerCul(struct PID_CON_VAR *str){
   double steeringPower;
-  steeringPower=powerPosition+PidCul(ErrorValueCul(feedback_val,target_val));
+  ErrorValueCul(&str[str->tag]);
+  steeringPower= str->powerPosition + PidCul(&str[str->tag]);
 
   return(steeringPower);
 }
